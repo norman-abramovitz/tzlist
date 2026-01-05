@@ -38,7 +38,12 @@ func main() {
 	pflag.BoolVarP(&Debug, "debug", "d", false, "enable debug information")
 	// fmt.Println(GetOsTimeZones())
 	for _, zone := range GetOsTimeZones() {
-		fmt.Println(zone)
+		aliases, exist := TzAliases[zone]
+		if exist {
+			fmt.Printf("%s has %d aliases %+v\n", zone, len(aliases), aliases)
+		} else {
+			fmt.Println(zone)
+		}
 	}
 }
 
@@ -121,7 +126,9 @@ func walkTzDir(path string, zones []string) []string {
 						fmt.Printf("Could not extract timezone alias from %s\n", resolvedPath)
 						continue
 					}
-					fmt.Printf("TIMEZONE %s alias: %s\n", atz, parts[1])
+					if Debug {
+						fmt.Printf("TIMEZONE %s alias: %s\n", atz, parts[1])
+					}
 					TzAliases.Add(atz, parts[1])
 				} else {
 					zones = append(zones, parts[1])
