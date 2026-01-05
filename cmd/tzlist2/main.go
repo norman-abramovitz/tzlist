@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/spf13/pflag"
 	_ "io/ioutil"
 	_ "log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/spf13/pflag"
 )
+
 var Debug bool = false
 
 func main() {
@@ -48,9 +49,9 @@ func GetSystemTimeZones() []string {
 
 			// Exclude non-timezone files (like 'VERSION' on macOS)
 			if strings.Contains(path, "zoneinfo/posix/") ||
-			   strings.Contains(path, "zoneinfo/localtime/") ||
-			   strings.Contains(path, "zoneinfo/posixrules/") ||
-			   strings.Contains(path, "zoneinfo/right/") {
+				strings.Contains(path, "zoneinfo/localtime/") ||
+				strings.Contains(path, "zoneinfo/posixrules/") ||
+				strings.Contains(path, "zoneinfo/right/") {
 				return nil
 			}
 

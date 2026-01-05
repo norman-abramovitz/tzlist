@@ -2,17 +2,40 @@ package main
 
 import (
 	"fmt"
+	"github.com/spf13/pflag"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
-	"github.com/spf13/pflag"
 )
 
+type TzAliasType map[string][]string
+
+func NewTzAlias() TzAliasType {
+	return make(map[string][]string)
+}
+
+func (tza TzAliasType) Add(key, value string) {
+	slice, exists := tza[key]
+	if !exists {
+		tza[key] = []string{value}
+		return
+	}
+
+	index, found := slices.BinarySearch(slice, value)
+
+	if !found {
+		tza[key] = slices.Insert(slice, index, value)
+	}
+}
+
 var Debug bool = false
+var TzAliases TzAliasType = NewTzAlias()
 
 func main() {
-	pflag.BoolVarP(&Debug, "debug", "d", true, "enable debug information")
+	pflag.BoolVarP(&Debug, "debug", "d", false, "enable debug information")
 	// fmt.Println(GetOsTimeZones())
 	for _, zone := range GetOsTimeZones() {
 		fmt.Println(zone)
@@ -64,20 +87,47 @@ func walkTzDir(path string, zones []string) []string {
 
 		newPath := path + "/" + info.Name()
 
+		// /usr/share/zoneinfo//Africa/Asmera -> points to Asmara
+		// path: /usr/share/zoneinfo//Africa newPath /usr/share/zoneinfo//Africa/Asmera ResovedPath: /usr/share/zoneinfo/Africa/Asmara
+
 		if info.IsDir() {
 			zones = walkTzDir(newPath, zones)
 		} else {
 			parts := strings.Split(newPath, "//")
-			if len(parts) == 2 {
-				if zoneInfo, err := time.LoadLocation(parts[1]); err == nil {
-					if Debug {
+			if len(parts) != 2 {
+				continue
+			}
+			if zoneInfo, err := time.LoadLocation(parts[1]); err == nil {
+				if Debug {
 					fmt.Printf("Debug: %#v\n", *zoneInfo)
 				}
+
+				if info.Type()&os.ModeSymlink != 0 {
+					symTarget, err := os.Readlink(newPath)
+					if err != nil {
+						fmt.Printf("Could not read link target for %s: %v\n", newPath, err)
+						continue
+					}
+					if Debug {
+						fmt.Printf("%s -> points to %s\n", newPath, symTarget)
+					}
+					resolvedPath, err := filepath.EvalSymlinks(newPath)
+					if err != nil {
+						fmt.Printf("Could not eval symlink for %s: %v\n", newPath, err)
+						continue
+					}
+					atz, found := strings.CutPrefix(resolvedPath, parts[0]+"/")
+					if !found {
+						fmt.Printf("Could not extract timezone alias from %s\n", resolvedPath)
+						continue
+					}
+					fmt.Printf("TIMEZONE %s alias: %s\n", atz, parts[1])
+					TzAliases.Add(atz, parts[1])
+				} else {
 					zones = append(zones, parts[1])
 				}
 			}
 		}
 	}
-
 	return zones
 }
