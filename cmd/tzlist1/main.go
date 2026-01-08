@@ -155,7 +155,7 @@ func main() {
 		if exist {
 			fmt.Printf("%-30s numAliases %-3d numOffsets %-2d Extend %s\n", name, len(zone.Aliases), len(zone.Offsets), zone.Extend)
 		} else {
-			fmt.Printf("Missing zone %s\n", zone)
+			fmt.Printf("Missing zone %s\n", name)
 		}
 		numAliases += len(zone.Aliases)
 	}
