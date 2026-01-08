@@ -6,8 +6,8 @@
 package rfc9636
 
 import (
-	"sync"
 	"fmt"
+	"sync"
 )
 
 //go:generate env ZONEINFO=$GOROOT/lib/time/zoneinfo.zip go run genzabbrs.go -output zoneinfo_abbrs_windows.go
@@ -88,19 +88,19 @@ var Local *Location = &localLoc
 var localLoc Location
 var localOnce sync.Once
 
-func(tzInfo *Location) Extend() string {
+func (tzInfo *Location) Extend() string {
 	return tzInfo.extend
 }
 
 func DumpLocation(tzInfo *Location) {
 	fmt.Println("Name:", tzInfo.name)
-	fmt.Println("Zone[", len(tzInfo.zone),"]")
+	fmt.Println("Zone[", len(tzInfo.zone), "]")
 	for i, zone := range tzInfo.zone {
-		fmt.Printf("  [%d]: %+v\n",i,zone)
+		fmt.Printf("  [%d]: %+v\n", i, zone)
 	}
-	fmt.Println("Transition[", len(tzInfo.tx),"]")
+	fmt.Println("Transition[", len(tzInfo.tx), "]")
 	for i, tx := range tzInfo.tx {
-		fmt.Printf("  [%d]: %+v\n",i,tx)
+		fmt.Printf("  [%d]: %+v\n", i, tx)
 	}
 	fmt.Println("Extend:", tzInfo.extend)
 }

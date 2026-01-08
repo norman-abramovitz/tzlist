@@ -89,7 +89,7 @@ func (d *dataIO) rest() []byte {
 }
 
 // Make a string by stopping at the first NUL
- func byteString(p []byte) string {
+func byteString(p []byte) string {
 	if i := bytes.IndexByte(p, 0); i != -1 {
 		p = p[:i]
 	}
@@ -259,12 +259,12 @@ func LoadLocationFromTZData(name string, data []byte) (*Location, error) {
 		}
 		zones[i].name = byteString(abbrev[b:])
 		// if runtime.GOOS == "aix" && len(name) > 8 && (name[:8] == "Etc/GMT+" || name[:8] == "Etc/GMT-") {
-			// // There is a bug with AIX 7.2 TL 0 with files in Etc,
-			// // GMT+1 will return GMT-1 instead of GMT+1 or -01.
-			// if name != "Etc/GMT+0" {
-				// // GMT+0 is OK
-				// zones[i].name = name[4:]
-			// }
+		// // There is a bug with AIX 7.2 TL 0 with files in Etc,
+		// // GMT+1 will return GMT-1 instead of GMT+1 or -01.
+		// if name != "Etc/GMT+0" {
+		// // GMT+0 is OK
+		// zones[i].name = name[4:]
+		// }
 		// }
 	}
 
@@ -310,35 +310,35 @@ func LoadLocationFromTZData(name string, data []byte) (*Location, error) {
 	// Fill in the cache with information about right now,
 	// since that will be the most common lookup.
 	/*
-	sec, _, _ := time.Now()
-	for i := range tx {
-		if tx[i].when <= sec && (i+1 == len(tx) || sec < tx[i+1].when) {
-			l.cacheStart = tx[i].when
-			l.cacheEnd = omega
-			l.cacheZone = &l.zone[tx[i].index]
-			if i+1 < len(tx) {
-				l.cacheEnd = tx[i+1].when
-			} else if l.extend != "" {
-				// If we're at the end of the known zone transitions,
-				// try the extend string.
-				if name, offset, estart, eend, isDST, ok := tzset(l.extend, l.cacheStart, sec); ok {
-					l.cacheStart = estart
-					l.cacheEnd = eend
-					// Find the zone that is returned by tzset to avoid allocation if possible.
-					if zoneIdx := findZone(l.zone, name, offset, isDST); zoneIdx != -1 {
-						l.cacheZone = &l.zone[zoneIdx]
-					} else {
-						l.cacheZone = &zone{
-							name:   name,
-							offset: offset,
-							isDST:  isDST,
+		sec, _, _ := time.Now()
+		for i := range tx {
+			if tx[i].when <= sec && (i+1 == len(tx) || sec < tx[i+1].when) {
+				l.cacheStart = tx[i].when
+				l.cacheEnd = omega
+				l.cacheZone = &l.zone[tx[i].index]
+				if i+1 < len(tx) {
+					l.cacheEnd = tx[i+1].when
+				} else if l.extend != "" {
+					// If we're at the end of the known zone transitions,
+					// try the extend string.
+					if name, offset, estart, eend, isDST, ok := tzset(l.extend, l.cacheStart, sec); ok {
+						l.cacheStart = estart
+						l.cacheEnd = eend
+						// Find the zone that is returned by tzset to avoid allocation if possible.
+						if zoneIdx := findZone(l.zone, name, offset, isDST); zoneIdx != -1 {
+							l.cacheZone = &l.zone[zoneIdx]
+						} else {
+							l.cacheZone = &zone{
+								name:   name,
+								offset: offset,
+								isDST:  isDST,
+							}
 						}
 					}
 				}
+				break
 			}
-			break
 		}
-	}
 	*/
 
 	return l, nil

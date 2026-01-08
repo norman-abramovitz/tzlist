@@ -5,18 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/pflag"
+	"github.com/tzlist/rfc9636"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
-	"github.com/tzlist/rfc9636"
 )
 
 const (
 	LevelTrace = slog.Level(-8)
-	LevelFatal = slog.Level(12) 
+	LevelFatal = slog.Level(12)
 )
 
 // Custom Logger methods for Trace and Fatal
@@ -31,7 +31,7 @@ func Fatal(msg string, args ...any) {
 
 // Information returned by time.Zone function
 type TzZoneType struct {
-	Name string
+	Name   string
 	Offset int
 }
 
@@ -42,14 +42,14 @@ type TzZoneType struct {
 type TzInfoType struct {
 	Aliases []string
 	Offsets []TzZoneType
-	Extend string
+	Extend  string
 }
 
-type TzInfoMap map[string]TzInfoType 
+type TzInfoMap map[string]TzInfoType
 
 var TzInfos = make(TzInfoMap)
 
-func (tzi TzInfoMap) AddZoneAlias( zone string, alias string) {
+func (tzi TzInfoMap) AddZoneAlias(zone string, alias string) {
 	zoneInfo, exists := tzi[zone]
 	if !exists {
 		zoneInfo = NewTzInfo()
@@ -61,10 +61,10 @@ func (tzi TzInfoMap) AddZoneAlias( zone string, alias string) {
 	}
 	tzi[zone] = zoneInfo
 	return
-	
+
 }
 
-func (tzi TzInfoMap) Add( zone string, data *rfc9636.Location) {
+func (tzi TzInfoMap) Add(zone string, data *rfc9636.Location) {
 	zoneInfo, exists := tzi[zone]
 	if !exists {
 		zoneInfo = NewTzInfo()
@@ -73,21 +73,21 @@ func (tzi TzInfoMap) Add( zone string, data *rfc9636.Location) {
 	year := time.Now().Year()
 	loc, err := time.LoadLocation(zone)
 	if err != nil {
-		Fatal("LoadLocation failed", "error", err);
+		Fatal("LoadLocation failed", "error", err)
 
 	}
-	
+
 	// Check offset on a winter date (Jan 1) and a summer date (Jul 1)
 	winterTime := time.Date(year, time.January, 1, 0, 0, 0, 0, loc)
 	summerTime := time.Date(year, time.July, 1, 0, 0, 0, 0, loc)
 
 	xst, winterOffset := winterTime.Zone()
 	xdt, summerOffset := summerTime.Zone()
-	
-	zoneInfo.Offsets = append(zoneInfo.Offsets, TzZoneType { xst, winterOffset })
+
+	zoneInfo.Offsets = append(zoneInfo.Offsets, TzZoneType{xst, winterOffset})
 
 	if winterOffset != summerOffset {
-		zoneInfo.Offsets = append(zoneInfo.Offsets, TzZoneType { xdt, summerOffset })
+		zoneInfo.Offsets = append(zoneInfo.Offsets, TzZoneType{xdt, summerOffset})
 	}
 
 	zoneInfo.Extend = data.Extend()
@@ -95,13 +95,12 @@ func (tzi TzInfoMap) Add( zone string, data *rfc9636.Location) {
 }
 
 func NewTzInfo() TzInfoType {
-	return TzInfoType {
+	return TzInfoType{
 		Aliases: make([]string, 0),
 		Offsets: make([]TzZoneType, 0, 2),
-		Extend: "",
+		Extend:  "",
 	}
 }
-
 
 type TzAliasType map[string][]string
 
@@ -132,19 +131,19 @@ func main() {
 		lv := strings.ToLower(value)
 		if strings.HasPrefix("trace", lv) {
 			slog.SetLogLoggerLevel(LevelTrace)
-                } else if strings.HasPrefix("debug", lv) {
+		} else if strings.HasPrefix("debug", lv) {
 			slog.SetLogLoggerLevel(slog.LevelDebug)
-                } else if strings.HasPrefix("info", lv) {
+		} else if strings.HasPrefix("info", lv) {
 			slog.SetLogLoggerLevel(slog.LevelInfo)
-                } else if strings.HasPrefix("warning", lv) {
+		} else if strings.HasPrefix("warning", lv) {
 			slog.SetLogLoggerLevel(slog.LevelWarn)
-                } else if strings.HasPrefix("error", lv) {
+		} else if strings.HasPrefix("error", lv) {
 			slog.SetLogLoggerLevel(slog.LevelError)
-                } else if strings.HasPrefix("fatal", lv) {
+		} else if strings.HasPrefix("fatal", lv) {
 			slog.SetLogLoggerLevel(LevelFatal)
-                } else {
-                        return errors.New("The loglevel parameter value must be a prefix of one of theses words, \"trace\", \"debug\", \"info\", \"warning\", \"error\" or \"fatal\".")
-                }
+		} else {
+			return errors.New("The loglevel parameter value must be a prefix of one of theses words, \"trace\", \"debug\", \"info\", \"warning\", \"error\" or \"fatal\".")
+		}
 		return nil
 	})
 
@@ -154,9 +153,9 @@ func main() {
 	for _, name := range GetOsTimeZones() {
 		zone, exist := TzInfos[name]
 		if exist {
-			fmt.Printf( "%-30s numAliases %-3d numOffsets %-2d Extend %s\n", name, len(zone.Aliases), len(zone.Offsets), zone.Extend)
+			fmt.Printf("%-30s numAliases %-3d numOffsets %-2d Extend %s\n", name, len(zone.Aliases), len(zone.Offsets), zone.Extend)
 		} else {
-			fmt.Printf( "Missing zone %s\n", zone)
+			fmt.Printf("Missing zone %s\n", zone)
 		}
 		numAliases += len(zone.Aliases)
 	}
@@ -202,7 +201,7 @@ func GetOsTimeZones() []string {
 func walkTzDir(path string, zones []string) []string {
 	dirInfos, err := os.ReadDir(path)
 	if err != nil {
-		Trace( "zoneinfo directory is not available", "path", path );
+		Trace("zoneinfo directory is not available", "path", path)
 		return zones
 	}
 
@@ -226,7 +225,7 @@ func walkTzDir(path string, zones []string) []string {
 			if len(parts) != 2 {
 				continue
 			}
-			if zoneInfo, err := rfc9636.LoadLocation(parts[1],[]string{parts[0]}); err == nil {
+			if zoneInfo, err := rfc9636.LoadLocation(parts[1], []string{parts[0]}); err == nil {
 				slog.Debug("dump of zoneinfo", "timezone", parts[1])
 				if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 					rfc9636.DumpLocation(zoneInfo)
@@ -241,7 +240,7 @@ func walkTzDir(path string, zones []string) []string {
 					slog.Debug("source points to target", "source", newPath, "target", symTarget)
 					resolvedPath, err := filepath.EvalSymlinks(newPath)
 					if err != nil {
-						slog.Error("Could not evaluate symlink", "symlink",newPath, "error", err)
+						slog.Error("Could not evaluate symlink", "symlink", newPath, "error", err)
 						continue
 					}
 					atz, found := strings.CutPrefix(resolvedPath, parts[0]+"/")
@@ -259,7 +258,7 @@ func walkTzDir(path string, zones []string) []string {
 				}
 
 			} else {
-				Trace("File is not a timezone file", "file", newPath);
+				Trace("File is not a timezone file", "file", newPath)
 			}
 
 		}
