@@ -78,19 +78,19 @@ func TestHumanReadableTZ(t *testing.T) {
 	    }
 	    parts := strings.Split(ans, "\n")
 	    if len(parts) != 3 {
-                t.Errorf("got %d parts, want 3\ninput %s", len(parts), ans)
+                t.Errorf("got %d parts, want 3\nactual %s", len(parts), ans)
 		return
 	    }
 	    if parts[0] != tt.expectSst {
-                t.Errorf("got %s want %s\ninput %s", parts[0], tt.expectSst, ans)
+                t.Errorf("got %s want %s\nactual %s", parts[0], tt.expectSst, ans)
 		return
 	    }
 	    if parts[1] != tt.expectDst {
-                t.Errorf("got %s want %s\ninput %s", parts[1], tt.expectDst, ans)
+                t.Errorf("got %s want %s\nactual %s", parts[1], tt.expectDst, ans)
 		return
 	    }
 	    if parts[2] != tt.expectRules {
-                t.Errorf("got %s want %s\ninput %s", parts[2], tt.expectRules, ans)
+                t.Errorf("got %s want %s\nactual %s", parts[2], tt.expectRules, ans)
 		return
 	    }
         })
