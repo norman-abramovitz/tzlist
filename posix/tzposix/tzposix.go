@@ -18,9 +18,9 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 5. Optional DST Offset (assumed +1 hour if absent)
 	// 6. Optional DST Start/End Rules
 	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
-		`(?<StdOffset>[0-9:+-]+)` +
+		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+)?)` +
 		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
-		`(?<DstOffset>[0-9:+-]+)?` +
+		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+)?)?` +
 		`,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
 		`,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	re := regexp.MustCompile(regex)
