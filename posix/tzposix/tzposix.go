@@ -16,15 +16,7 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 3. Optional DST Abbr (DST)
 	// 4. Optional DST Offset (assumed +1 hour if absent)
 	// 5. Optional DST Start/End Rules
-	/*
-	regex := `^(?P<StdName>(<[^>]+>|[[:alpha:]]{3,}))` + // Standard Name (angle brackets or alpha characters)
-                `(?P<StdOffset>[-+]?\d{1,2}(:\d{2}){0,2})` + // Standard Offset (e.g., -5, +10:30)
-                `(?P<DstName>(<[^>]+>|[[:alpha:]]{3,}))?` + // Optional DST Name
-                `(?P<DstOffset>[-+]?\d{1,2}(:\d{2}){0,2})?` + // Optional DST Offset
-                `(?P<StartRules>,.+)?$` // Optional Rules (starts with a comma)
-		*/
-		// `^(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))([0-9:+-]+)(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)? ?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)?`
-		regex :=`^(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))([0-9:+-]+)(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))?([0-9:+-]+)?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)? ?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)?`
+	regex :=`^(?:(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>))(?<StdOffset>[0-9:+-]+)(?:(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>))?(?<DstOffset>[0-9:+-]+)?,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)? ?,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
