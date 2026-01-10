@@ -1,3 +1,9 @@
 
 build: 
 	go build -o . ./cmd/... 
+
+test: 
+	go test ./... 
+
+test-verbose: 
+	go test -v ./... 

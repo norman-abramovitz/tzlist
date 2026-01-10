@@ -26,6 +26,12 @@ func TestHumanReadableTZ(t *testing.T) {
 	    expectRules: "Rules: Starts on the second Sunday of March at 02:00:00, Ends on the first Sunday of November at 02:00:00",
 	    expectError: nil,
 	    },
+	    {tz: "NST-3:30NDT-3:30,M3.2.0/2:30:2,M11.1.0/11:25:40",
+	    expectSst:  "Standard Time: PST (UTC -08:00)",
+	    expectDst:  "Daylight Time: PDT (UTC -07:00)",
+	    expectRules: "Rules: Starts on the second Sunday of March at 02:00:00, Ends on the first Sunday of November at 02:00:00",
+	    expectError: nil,
+	    },
     }
 
     for _, tt := range tests {

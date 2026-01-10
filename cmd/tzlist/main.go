@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/tzlist/rfc9636"
+	"github.com/tzlist/posix/tzposix"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 )
@@ -102,29 +104,12 @@ func NewTzInfo() TzInfoType {
 	}
 }
 
-type TzAliasType map[string][]string
-
-func NewTzAlias() TzAliasType {
-	return make(map[string][]string)
-}
-
-// Assuming right now that the data is coming in sorted order given the way zoneinfo directory is walked
-// Also BinarySearch will return information sorted as well
-func (tza TzAliasType) Add(key, value string) {
-	slice, exists := tza[key]
-	if !exists {
-		tza[key] = []string{value}
-		return
+func SupportsDST(numOffsets int) string {
+	if numOffsets == 2 {
+		return "yes"
 	}
-
-	index, found := slices.BinarySearch(slice, value)
-
-	if !found {
-		tza[key] = slices.Insert(slice, index, value)
-	}
+	return "no"
 }
-
-var TzAliases TzAliasType = NewTzAlias()
 
 func main() {
 	pflag.FuncP("loglevel", "l", "Set loglevel to trace, debug, info, warning, error or fatal", func(value string) error {
@@ -150,16 +135,29 @@ func main() {
 	pflag.Parse()
 
 	numAliases := 0
-	for _, name := range GetOsTimeZones() {
+	zones, keylen := GetOsTimeZones()
+	keylen += 3
+	slog.Info("Statistics", "numKeys", len(zones), "keylen", keylen)
+	for _, name := range zones {
 		zone, exist := TzInfos[name]
 		if exist {
-			fmt.Printf("%-30s numAliases %-3d numOffsets %-2d Extend %s\n", name, len(zone.Aliases), len(zone.Offsets), zone.Extend)
+			var description string
+			var err error
+
+			description, err = tzposix.HumanReadableTZ(zone.Extend) 
+			if err != nil {
+				slog.Error("HumanReadableTZ failure", "extend", zone.Extend, "error", err); 
+			}
+
+			fmt.Printf("%-*s DST: %-3s %+v Extend %s\n", keylen, name, SupportsDST(len(zone.Offsets)), zone.Aliases, zone.Extend)
+			if len(description) != 0 {
+				fmt.Println(description)
+			}
 		} else {
 			fmt.Printf("Missing zone %s\n", name)
 		}
 		numAliases += len(zone.Aliases)
 	}
-	fmt.Println(numAliases + len(TzInfos))
 }
 
 // UsesDST checks if a given location observes Daylight Saving Time by comparing offsets.
@@ -182,8 +180,7 @@ func UsesDST(timezone string) (bool, string, string, int, error) {
 	return winterOffset != summerOffset, xst, xdt, year, nil
 }
 
-func GetOsTimeZones() []string {
-	var zones []string
+func GetOsTimeZones() ([]string, int) {
 	var zoneDirs = []string{
 		// Update path according to your OS
 		"/usr/share/zoneinfo/",
@@ -192,17 +189,27 @@ func GetOsTimeZones() []string {
 	}
 
 	for _, zd := range zoneDirs {
-		zones = walkTzDir(zd, zones)
+		walkTzDir(zd)
 	}
 
-	return zones
+	zones := make([]string, 0, len(TzInfos))
+	keylen := 0
+	for key,_ := range TzInfos {
+		zones = append(zones, key)
+		if len(key) > keylen {
+			keylen = len(key)
+		}
+	}
+	sort.Strings(zones)
+
+	return zones, keylen
 }
 
-func walkTzDir(path string, zones []string) []string {
+func walkTzDir(path string) {
 	dirInfos, err := os.ReadDir(path)
 	if err != nil {
 		Trace("zoneinfo directory is not available", "path", path)
-		return zones
+		return
 	}
 
 	// Linux Convention
@@ -219,7 +226,7 @@ func walkTzDir(path string, zones []string) []string {
 		newPath := path + "/" + info.Name()
 
 		if info.IsDir() {
-			zones = walkTzDir(newPath, zones)
+			walkTzDir(newPath)
 		} else {
 			parts := strings.Split(newPath, "//")
 			if len(parts) != 2 {
@@ -250,11 +257,8 @@ func walkTzDir(path string, zones []string) []string {
 					}
 					slog.Debug("Timezone has alias", "timezone", atz, "alias", parts[1])
 					TzInfos.AddZoneAlias(atz, parts[1])
-
-					TzAliases.Add(atz, parts[1])
 				} else {
 					TzInfos.Add(parts[1], zoneInfo)
-					zones = append(zones, parts[1])
 				}
 
 			} else {
@@ -263,5 +267,5 @@ func walkTzDir(path string, zones []string) []string {
 
 		}
 	}
-	return zones
+	return
 }

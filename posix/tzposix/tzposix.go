@@ -23,7 +23,8 @@ func HumanReadableTZ(posixTZ string) (string, error) {
                 `(?P<DstOffset>[-+]?\d{1,2}(:\d{2}){0,2})?` + // Optional DST Offset
                 `(?P<StartRules>,.+)?$` // Optional Rules (starts with a comma)
 		*/
-		regex :=`^(?:([A-Za-z]{3,4}|<[[:alnum:]+-]+>))([0-9+-]+)(?:([A-Za-z]{3,4}|<[[:alnum:]+-]+>))?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)? ?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)?`
+		// `^(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))([0-9:+-]+)(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)? ?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)?`
+		regex :=`^(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))([0-9:+-]+)(?:([[:alpha:]]{3,4}|<[[:alnum:]+-]+>))?([0-9:+-]+)?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)? ?,?((?:M|J)[0-9\.]+/[0-9:]+|(?:M|J)[0-9\.]+)?`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
@@ -43,9 +44,9 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	stdAbbr := matches[1]
 	stdOffsetStr := matches[2]
 	dstAbbr := matches[3]
-	dstOffsetStr := ""
-	startRule := matches[4]
-	endRule := matches[5]
+	dstOffsetStr := matches[4]
+	startRule := matches[5]
+	endRule := matches[6]
 
 	// Convert offset to human-friendly format (UTC+/-H:M)
 	stdOffset, err := parseOffset(stdOffsetStr)
