@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/pflag"
-	"github.com/tzlist/rfc9636"
 	"github.com/tzlist/posix/tzposix"
+	"github.com/tzlist/rfc9636"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -144,9 +144,9 @@ func main() {
 			var description string
 			var err error
 
-			description, err = tzposix.HumanReadableTZ(zone.Extend) 
+			description, err = tzposix.HumanReadableTZ(zone.Extend)
 			if err != nil {
-				slog.Error("HumanReadableTZ failure", "extend", zone.Extend, "error", err); 
+				slog.Error("HumanReadableTZ failure", "extend", zone.Extend, "error", err)
 			}
 
 			fmt.Printf("%-*s DST: %-3s %+v Extend %s\n", keylen, name, SupportsDST(len(zone.Offsets)), zone.Aliases, zone.Extend)
@@ -194,7 +194,7 @@ func GetOsTimeZones() ([]string, int) {
 
 	zones := make([]string, 0, len(TzInfos))
 	keylen := 0
-	for key,_ := range TzInfos {
+	for key, _ := range TzInfos {
 		zones = append(zones, key)
 		if len(key) > keylen {
 			keylen = len(key)

@@ -14,9 +14,15 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 1. Standard Time Abbr (STD)
 	// 2. STD Offset
 	// 3. Optional DST Abbr (DST)
-	// 4. Optional DST Offset (assumed +1 hour if absent)
-	// 5. Optional DST Start/End Rules
-	regex :=`^(?:(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>))(?<StdOffset>[0-9:+-]+)(?:(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>))?(?<DstOffset>[0-9:+-]+)?,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)? ?,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
+	// 4. DST Offset (DST)
+	// 5. Optional DST Offset (assumed +1 hour if absent)
+	// 6. Optional DST Start/End Rules
+	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
+		`(?<StdOffset>[0-9:+-]+)` +
+		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
+		`(?<DstOffset>[0-9:+-]+)?` +
+		`,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
+		`,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
@@ -25,11 +31,11 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 		return "", fmt.Errorf("invalid POSIX TZ string format: %s", posixTZ)
 	}
 	// for i, name := range re.SubexpNames() {
-        // fmt.Printf("'%s'\t %d -> %s\n", name, i, matches[i])
-    // }
+	// fmt.Printf("'%s'\t %d -> %s\n", name, i, matches[i])
+	// }
 	// for i := range matches {
-        // fmt.Printf("''\t %d -> %s\n", i, matches[i])
-    // }
+	// fmt.Printf("''\t %d -> %s\n", i, matches[i])
+	// }
 
 	// fmt.Printf("DEBUG  %d  %+v\n", len(matches), matches)
 
@@ -106,11 +112,11 @@ func formatOffset(offsetSeconds int) string {
 		sign = "-" // POSIX is backwards, so >0 seconds is actually UTC-X
 		offsetSeconds = -offsetSeconds
 	}
-    // Absolute value for calculation
-    absOffset := offsetSeconds
-    if absOffset < 0 {
-        absOffset = -absOffset
-    }
+	// Absolute value for calculation
+	absOffset := offsetSeconds
+	if absOffset < 0 {
+		absOffset = -absOffset
+	}
 
 	hours := absOffset / 3600
 	minutes := (absOffset % 3600) / 60
@@ -126,12 +132,12 @@ func parseRule(rule string) string {
 			month := parts[0]
 			week := parts[1]
 			day := parts[2]
-            timeStr := "02:00:00" // default
-            if strings.Contains(day, "/") {
-                timeParts := strings.Split(day, "/")
-                day = timeParts[0]
-                timeStr = timeParts[1]
-            }
+			timeStr := "02:00:00" // default
+			if strings.Contains(day, "/") {
+				timeParts := strings.Split(day, "/")
+				day = timeParts[0]
+				timeStr = timeParts[1]
+			}
 
 			// Mapping basic values to human terms
 			months := []string{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}
@@ -141,15 +147,15 @@ func parseRule(rule string) string {
 			return fmt.Sprintf("on the %s %s of %s at %s", weekDesc[week], dayDesc[day], months[atoi(month)-1], timeStr)
 		}
 	}
-    // Handle Julian day or other formats as needed
+	// Handle Julian day or other formats as needed
 	return fmt.Sprintf("Rule: %s", rule)
 }
 
 func atoi(s string) int {
-    if v, err := strconv.Atoi(s); err == nil {
-        return v
-    }
-    return 0
+	if v, err := strconv.Atoi(s); err == nil {
+		return v
+	}
+	return 0
 }
 
 /*
