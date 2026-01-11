@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 )
+
 func TestHumanReadableTZAll(t *testing.T) {
-	var tests = []string {
+	var tests = []string{
 		"<+00>0<+01>,0/0,J365/25",
 		"<+00>0<+02>-2,M3.5.0/1,M10.5.0/3",
 		"<+01>-1",
@@ -147,7 +148,7 @@ func TestHumanReadableTZ(t *testing.T) {
 		{tz: "EET-2EEST,M4.5.5/0,M10.5.4/24",
 			expectSst:   "Standard Time: EET (UTC +02:00)",
 			expectDst:   "Daylight Time: EEST (UTC +03:00)",
-			expectRules: "Rules: Starts on the last Friday of April at 0, Ends on the last Thursday of October at 24",
+			expectRules: "Rules: Starts on the last Friday of April at 00:00:00, Ends on the last Thursday of October at midnight of the next day",
 			expectError: nil,
 		},
 		{tz: "PST8PDT,M3.2.0,M11.1.0",
@@ -159,13 +160,13 @@ func TestHumanReadableTZ(t *testing.T) {
 		{tz: "NST-3:30NDT2:30,M3.2.0/2:30:2,M11.1.0/11:25:40",
 			expectSst:   "Standard Time: NST (UTC +03:30)",
 			expectDst:   "Daylight Time: NDT (UTC -02:30)",
-			expectRules: "Rules: Starts on the second Sunday of March at 2:30:2, Ends on the first Sunday of November at 11:25:40",
+			expectRules: "Rules: Starts on the second Sunday of March at 02:30:02, Ends on the first Sunday of November at 11:25:40",
 			expectError: nil,
 		},
 		{tz: "CST6CDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
 			expectSst:   "Standard Time: CST (UTC -06:00)",
 			expectDst:   "Daylight Time: CDT (UTC -05:00)",
-			expectRules: "Rules: Starts on the second Sunday of March at 2:00:00, Ends on the first Sunday of November at 2:00:00",
+			expectRules: "Rules: Starts on the second Sunday of March at 02:00:00, Ends on the first Sunday of November at 02:00:00",
 			expectError: nil,
 		},
 		{tz: "GRNLNDST3GRNLNDDT,M10.3.0/00:00:00,M2.4.0/00:00:00",

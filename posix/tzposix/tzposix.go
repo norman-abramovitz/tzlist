@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // HumanReadableTZ parses a POSIX TZ string and returns a human-readable description.
@@ -17,14 +18,14 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 4. Optional DST Offset (assumed +1 hour if absent)
 	// 5. Optional DST Start Rule
 	// 6. Optional DST End Rules
-		// `,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
-		// `,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
+	// `,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
+	// `,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
-		  `(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
-		  `(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
-		  `(?<DstOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
-		  `,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?` +
-		  `,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?$`
+		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
+		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
+		`(?<DstOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
+		`,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?` +
+		`,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?$`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
@@ -147,11 +148,32 @@ func parseRule(rule string) string {
 			month := parts[0]
 			week := parts[1]
 			day := parts[2]
-			timeStr := "02:00:00" // default
+			timeStr := ""
+			hours := 2
+			minutes := 0
+			seconds := 0
 			if strings.Contains(day, "/") {
 				timeParts := strings.Split(day, "/")
 				day = timeParts[0]
 				timeStr = timeParts[1]
+				if timeStr != "" {
+					tparts := strings.Split(timeStr, ":")
+					if len(tparts) > 0 {
+						hours = atoi(tparts[0])
+					}
+					if len(tparts) > 1 {
+						minutes = atoi(tparts[1])
+					}
+					if len(tparts) > 2 {
+						seconds = atoi(tparts[2])
+					}
+				}
+			}
+			if hours == 24 {
+				timeStr = "midnight of the next day"
+			} else {
+				t := time.Date(0, 0, 0, hours, minutes, seconds, 0, time.UTC)
+				timeStr = t.Format("15:04:05")
 			}
 
 			// Mapping basic values to human terms
@@ -164,14 +186,14 @@ func parseRule(rule string) string {
 	} else if strings.HasPrefix(rule, "J") {
 		julianDay := strings.TrimPrefix(rule, "J")
 		if julianDay == "365/25" {
-			return  "at the end of the year"
+			return "at the end of the year"
 		}
-		return fmt.Sprintf("on Julian Day %s", julianDay )
+		return fmt.Sprintf("on Julian Day %s", julianDay)
 	} else {
 		if rule == "0/0" {
 			return "from the start of the year"
 		}
-		return fmt.Sprintf("on Julian Day %s", rule )
+		return fmt.Sprintf("on Julian Day %s", rule)
 	}
 
 	// Handle Julian day or other formats as needed
