@@ -14,17 +14,17 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 1. Standard Time Abbr (STD)
 	// 2. STD Offset
 	// 3. Optional DST Abbr (DST)
-	// 4. DST Offset (DST)
-	// 5. Optional DST Offset (assumed +1 hour if absent)
-	// 6. Optional DST Start/End Rules
+	// 4. Optional DST Offset (assumed +1 hour if absent)
+	// 5. Optional DST Start Rule
+	// 6. Optional DST End Rules
 		// `,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
 		// `,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
-		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
-		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
-		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
-		`,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[0-9:+-]+)?)?` +
-		`,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[0-9:+-]+)?)?$`
+		  `(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
+		  `(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
+		  `(?<DstOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
+		  `,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?` +
+		  `,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?$`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
@@ -32,14 +32,16 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	if matches == nil {
 		return "", fmt.Errorf("invalid POSIX TZ string format: %s", posixTZ)
 	}
+	// for debugging when changing regex expression
+	// if len(matches) != 7 { // 6 named and 1 complete matches
+	//    fmt.Printf("unexpected potential matches - expect 7 but got %d\n", len(matches))
+	// }
 	// for i, name := range re.SubexpNames() {
-	// fmt.Printf("'%s'\t %d -> %s\n", name, i, matches[i])
+	//    fmt.Printf("'%s'\t %d -> %s\n", name, i, matches[i])
 	// }
 	// for i := range matches {
-	// fmt.Printf("''\t %d -> %s\n", i, matches[i])
+	//    fmt.Printf("''\t %d -> %s\n", i, matches[i])
 	// }
-
-	// fmt.Printf("DEBUG  %d  %+v\n", len(matches), matches)
 
 	stdAbbr := matches[1]
 	stdOffsetStr := matches[2]
@@ -104,7 +106,14 @@ func parseOffset(offsetStr string) (int, error) {
 			return 0, err
 		}
 	}
-	return sign * (hours*3600 + minutes*60), nil
+	seconds := 0
+	if len(parts) > 2 {
+		seconds, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return 0, err
+		}
+	}
+	return sign * (hours*3600 + minutes*60 + seconds), nil
 }
 
 // formatOffset converts seconds offset to " +H:M" or " -H:M" string
@@ -122,6 +131,10 @@ func formatOffset(offsetSeconds int) string {
 
 	hours := absOffset / 3600
 	minutes := (absOffset % 3600) / 60
+	seconds := (absOffset % 3600) % 60
+	if seconds != 0 {
+		return fmt.Sprintf(" %s%02d:%02d:%02d", sign, hours, minutes, seconds)
+	}
 	return fmt.Sprintf(" %s%02d:%02d", sign, hours, minutes)
 }
 
