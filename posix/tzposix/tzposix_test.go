@@ -177,7 +177,7 @@ func TestHumanReadableTZ(t *testing.T) {
 		{tz: "<+00>0<+01>,0/0,J365/25",
 			expectSst:   "Standard Time: <+00> (UTC +00:00)",
 			expectDst:   "Daylight Time: <+01> (UTC +01:00)",
-			expectRules: "Rules: Starts Rule: 0/0, Ends Rule: J365/25",
+			expectRules: "Rules: Starts from the start of the year, Ends at the end of the year",
 			expectError: nil,
 		},
 	}

@@ -161,7 +161,19 @@ func parseRule(rule string) string {
 
 			return fmt.Sprintf("on the %s %s of %s at %s", weekDesc[week], dayDesc[day], months[atoi(month)-1], timeStr)
 		}
+	} else if strings.HasPrefix(rule, "J") {
+		julianDay := strings.TrimPrefix(rule, "J")
+		if julianDay == "365/25" {
+			return  "at the end of the year"
+		}
+		return fmt.Sprintf("on Julian Day %s", julianDay )
+	} else {
+		if rule == "0/0" {
+			return "from the start of the year"
+		}
+		return fmt.Sprintf("on Julian Day %s", rule )
 	}
+
 	// Handle Julian day or other formats as needed
 	return fmt.Sprintf("Rule: %s", rule)
 }
