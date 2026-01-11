@@ -17,12 +17,14 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 4. DST Offset (DST)
 	// 5. Optional DST Offset (assumed +1 hour if absent)
 	// 6. Optional DST Start/End Rules
+		// `,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
+		// `,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
 	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
 		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
 		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
 		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
-		`,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
-		`,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
+		`,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[0-9:+-]+)?)?` +
+		`,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[0-9:+-]+)?)?$`
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
