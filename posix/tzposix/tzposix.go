@@ -156,7 +156,12 @@ func parseRule(rule string) string {
 				timeParts := strings.Split(day, "/")
 				day = timeParts[0]
 				timeStr = timeParts[1]
-				if timeStr != "" {
+				if timeStr == "50" {
+					hours = 0
+					minutes = 50    //   /50: The local time at which the change occurs. If minutes and seconds
+							//   are omitted, it defaults to two digits (50 minutes past midnight, 00:50).
+					seconds = 0     //   timezones Asia/Gaza Asia/Hebron
+				} else if timeStr != "" {
 					tparts := strings.Split(timeStr, ":")
 					if len(tparts) > 0 {
 						hours = atoi(tparts[0])
@@ -169,7 +174,14 @@ func parseRule(rule string) string {
 					}
 				}
 			}
-			if hours == 24 {
+			if hours == 26 {
+				timeStr = "02:00:00 on first Friday on or after March 23rd at 02:00:00"
+				// /26: The time at which the change occurs, which is 26:00
+				// (equivalent to 02:00 on the first Friday on or after March 23).
+				// Clocks "spring forward" at this time.
+				// timezones Asia/Jerusalem
+
+			} else if hours == 24 {
 				timeStr = "midnight of the next day"
 			} else {
 				t := time.Date(0, 0, 0, hours, minutes, seconds, 0, time.UTC)

@@ -145,6 +145,18 @@ func TestHumanReadableTZ(t *testing.T) {
 		expectRules string
 		expectError error
 	}{
+		{tz: "IST-2IDT,M3.4.4/26,M10.5.0",
+			expectSst:   "Standard Time: IST (UTC +02:00)",
+			expectDst:   "Daylight Time: IDT (UTC +03:00)",
+			expectRules: "Rules: Starts on the fourth Thursday of March at 02:00:00 on first Friday on or after March 23rd at 02:00:00, Ends on the last Sunday of October at 02:00:00",
+			expectError: nil,
+		},
+		{tz: "EET-2EEST,M3.4.4/50,M10.4.4/50",
+			expectSst:   "Standard Time: EET (UTC +02:00)",
+			expectDst:   "Daylight Time: EEST (UTC +03:00)",
+			expectRules: "Rules: Starts on the fourth Thursday of March at 00:50:00, Ends on the fourth Thursday of October at 00:50:00",
+			expectError: nil,
+		},
 		{tz: "EET-2EEST,M4.5.5/0,M10.5.4/24",
 			expectSst:   "Standard Time: EET (UTC +02:00)",
 			expectDst:   "Daylight Time: EEST (UTC +03:00)",
