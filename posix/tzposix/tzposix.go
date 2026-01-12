@@ -175,11 +175,15 @@ func parseRule(rule string) string {
 				}
 			}
 			if hours == 26 {
-				timeStr = "02:00:00 on first Friday on or after March 23rd at 02:00:00"
+				// TODO Do we to support other versions of /26?  Not at this time
+
+				return "on the Friday on or after March 23rd at 02:00:00"
 				// /26: The time at which the change occurs, which is 26:00
 				// (equivalent to 02:00 on the first Friday on or after March 23).
 				// Clocks "spring forward" at this time.
-				// timezones Asia/Jerusalem
+				// timezones Asia/Jerusalem M3.4.4/26
+				// March has 31 days the date cannot be expressed with the normal interpretation
+				// since it not consistently the 4th week or last week
 
 			} else if hours == 24 {
 				timeStr = "midnight of the next day"
