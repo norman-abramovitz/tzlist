@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/tzlist/posix/tzposix"
 	"github.com/tzlist/rfc9636"
+	"io/ioutil"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,6 +17,15 @@ import (
 	"strings"
 	"time"
 )
+
+type SchedulerJson struct {
+	Name    string   `json:"Name"`
+	HasDst  bool     `json:"HasDst"`
+	Std     string   `json:"Std"`
+	Dst     string   `json:"Dst,omitempty"`
+	Aliases []string `json:"Aliases,omitempty"`
+	Rules   string   `json:"Rules,omitempty"`
+}
 
 const (
 	LevelTrace = slog.Level(-8)
@@ -46,6 +57,9 @@ type TzInfoType struct {
 	Offsets []TzZoneType
 	Extend  string
 }
+
+var SchedulerZoneInfo []SchedulerJson = make([]SchedulerJson, 0, 800)
+var SchedulerFilename string
 
 type TzInfoMap map[string]TzInfoType
 
@@ -111,6 +125,44 @@ func SupportsDST(numOffsets int) string {
 	return "no"
 }
 
+func NewSchedulerJson(name, std, dst string, dstFlag bool, aliases []string, rules string) SchedulerJson {
+	return SchedulerJson{
+		Name:    name,
+		HasDst:  dstFlag,
+		Std:     std,
+		Dst:     dst,
+		Aliases: aliases,
+		Rule:    rules,
+	}
+}
+
+func GenerateJson(zones []string) {
+	for _, name := range zones {
+		if zone, exist := TzInfos[name]; exist {
+			std, dst, rules, err := tzposix.DecodeTZ(zone.Extend)
+			if err != nil {
+				slog.Error("DecodeTZ failure", "TZ", zone.Extend, "error", err)
+			}
+			zj := NewSchedulerJson(name, std, dst, len(zone.Offsets) > 1, zone.Aliases, rules)
+			SchedulerZoneInfo = append(SchedulerZoneInfo, zj)
+		} else {
+			fmt.Printf("Missing zone %s\n", name)
+		}
+	}
+	jsonData, err := json.MarshalIndent(SchedulerZoneInfo, "", "  ") // Use MarshalIndent for pretty print
+	if err != nil {
+		Fatal("Error marshaling to JSON ", "error", err)
+	}
+
+	// 4. Write the JSON data to a file
+	filename := "scheduler.json"
+	err = ioutil.WriteFile(filename, jsonData, 0644)
+	if err != nil {
+		Fatal("Error writing to file", "error", err)
+	}
+	fmt.Printf("Successfully wrote JSON array to %s\n", filename)
+}
+
 func main() {
 	pflag.FuncP("loglevel", "l", "Set loglevel to trace, debug, info, warning, error or fatal", func(value string) error {
 		lv := strings.ToLower(value)
@@ -131,12 +183,18 @@ func main() {
 		}
 		return nil
 	})
+	pflag.StringVarP(&SchedulerFilename, "json", "j", "", "TBD")
 
 	pflag.Parse()
 
 	numAliases := 0
 	zones, keylen := GetOsTimeZones()
-	keylen += 3
+	if len(SchedulerFilename) > 0 {
+		GenerateJson(zones)
+		return
+	}
+
+	keylen += 3 // for output spacing
 	slog.Info("Statistics", "numKeys", len(zones), "keylen", keylen)
 	for _, name := range zones {
 		zone, exist := TzInfos[name]
@@ -158,6 +216,7 @@ func main() {
 		}
 		numAliases += len(zone.Aliases)
 	}
+	slog.Info("Statistics", "zoneinfos", len(zones), "aliases", numAliases, "total", len(zones)+numAliases)
 }
 
 // UsesDST checks if a given location observes Daylight Saving Time by comparing offsets.

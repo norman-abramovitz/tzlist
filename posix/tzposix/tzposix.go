@@ -2,15 +2,14 @@ package tzposix
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// HumanReadableTZ parses a POSIX TZ string and returns a human-readable description.
-// It handles a common format like "EST5EDT,M3.2.0/02:00:00,M11.1.0/02:00:00"
-func HumanReadableTZ(posixTZ string) (string, error) {
+func getTZRegex() string {
 	// A basic regex to capture the main parts:
 	// 1. Standard Time Abbr (STD)
 	// 2. STD Offset
@@ -18,14 +17,67 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	// 4. Optional DST Offset (assumed +1 hour if absent)
 	// 5. Optional DST Start Rule
 	// 6. Optional DST End Rules
-	// `,?(?<StartRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?` +
-	// `,?(?<EndRule>(?:M|J)?[0-9\.]+/[0-9:+-]+|(?:M|J)?[0-9\.]+)?$`
-	regex := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
+	rstr := `^(?<StdName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)` +
 		`(?<StdOffset>[-+]?[0-9]+(?::[0-9]+){0,2})` +
 		`(?<DstName>[[:alpha:]]{3,}|<[[:alnum:]+-]+>)?` +
 		`(?<DstOffset>[-+]?[0-9]+(?::[0-9]+){0,2})?` +
 		`,?(?<StartRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?` +
 		`,?(?<EndRule>(?:J?[0-9]+|M[0-9]+(?:\.[0-9]+){0,2})(?:/[+-]?[0-9]+(?::[0-9]+){0,2})?)?$`
+	return rstr
+}
+
+func DecodeTZ(posixTZ string) (string, string, string, error) {
+	regex := getTZRegex()
+	re := regexp.MustCompile(regex)
+
+	matches := re.FindStringSubmatch(posixTZ)
+
+	if matches == nil {
+		return "", "", "", fmt.Errorf("invalid POSIX TZ string format: %s", posixTZ)
+	}
+
+	stdAbbr := matches[1]
+	stdOffsetStr := matches[2]
+	dstAbbr := matches[3]
+	dstOffsetStr := matches[4]
+	startRule := matches[5]
+	endRule := matches[6]
+
+	stdOffset, err := parseOffset(stdOffsetStr)
+	if err != nil {
+		return "", "", "", fmt.Errorf("invalid standard offset: %w", err)
+	}
+	stdDesc := fmt.Sprintf("%s (UTC%s)", stdAbbr, formatOffset(stdOffset))
+	dstDesc := ""
+	rulesDesc := ""
+
+	if dstAbbr == "" {
+		return stdDesc, dstDesc, rulesDesc, nil
+	}
+
+	// Calculate DST offset if not explicitly provided (POSIX default is 1 hour ahead)
+	dstOffset := stdOffset - 3600 // DST is typically 1 hour *ahead* (west) of standard time, so offset is smaller in POSIX
+
+	if dstOffsetStr != "" {
+		parsedDstOffset, err := parseOffset(dstOffsetStr)
+		if err != nil {
+			return "", "", "", fmt.Errorf("invalid daylight offset: %w", err)
+		}
+		dstOffset = parsedDstOffset
+	}
+	dstDesc = fmt.Sprintf("%s (UTC%s)", dstAbbr, formatOffset(dstOffset))
+
+	if startRule != "" && endRule != "" {
+		rulesDesc = fmt.Sprintf("Starts %s, Ends %s", parseRule(startRule), parseRule(endRule))
+	}
+
+	return stdDesc, dstDesc, rulesDesc, nil
+}
+
+// HumanReadableTZ parses a POSIX TZ string and returns a human-readable description.
+// It handles a common format like "EST5EDT,M3.2.0/02:00:00,M11.1.0/02:00:00"
+func HumanReadableTZ(posixTZ string) (string, error) {
+	regex := getTZRegex()
 	re := regexp.MustCompile(regex)
 
 	matches := re.FindStringSubmatch(posixTZ)
@@ -50,6 +102,10 @@ func HumanReadableTZ(posixTZ string) (string, error) {
 	dstOffsetStr := matches[4]
 	startRule := matches[5]
 	endRule := matches[6]
+
+	if !((startRule == "" && endRule == "") || (startRule != "" && endRule != "")) {
+		fmt.Fprintln(os.Stderr, "Warning Stand alone TZ rule exists", posixTZ)
+	}
 
 	// Convert offset to human-friendly format (UTC+/-H:M)
 	stdOffset, err := parseOffset(stdOffsetStr)
@@ -158,9 +214,9 @@ func parseRule(rule string) string {
 				timeStr = timeParts[1]
 				if timeStr == "50" {
 					hours = 0
-					minutes = 50    //   /50: The local time at which the change occurs. If minutes and seconds
-							//   are omitted, it defaults to two digits (50 minutes past midnight, 00:50).
-					seconds = 0     //   timezones Asia/Gaza Asia/Hebron
+					minutes = 50 //   /50: The local time at which the change occurs. If minutes and seconds
+					//   are omitted, it defaults to two digits (50 minutes past midnight, 00:50).
+					seconds = 0 //   timezones Asia/Gaza Asia/Hebron
 				} else if timeStr != "" {
 					tparts := strings.Split(timeStr, ":")
 					if len(tparts) > 0 {
