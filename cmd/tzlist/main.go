@@ -19,7 +19,7 @@ import (
 )
 
 type SchedulerJson struct {
-	Name    string   `json:"Name"`
+	Name    string   `json:"Name,omitempty"`
 	HasDst  bool     `json:"HasDst"`
 	Std     string   `json:"Std"`
 	Dst     string   `json:"Dst,omitempty"`
@@ -58,10 +58,17 @@ type TzInfoType struct {
 	Extend  string
 }
 
-var SchedulerZoneInfo []SchedulerJson = make([]SchedulerJson, 0, 800)
+var SchedulerZoneSlices []SchedulerJson = make([]SchedulerJson, 0, 800)
+
+type SchedulerZoneMap map[string]SchedulerJson
+
+var SchedulerZoneObjects = make(SchedulerZoneMap)
+
 var SchedulerFilename string
 
 type TzInfoMap map[string]TzInfoType
+
+var jsonFileFormat string = "objects"
 
 var TzInfos = make(TzInfoMap)
 
@@ -132,7 +139,7 @@ func NewSchedulerJson(name, std, dst string, dstFlag bool, aliases []string, rul
 		Std:     std,
 		Dst:     dst,
 		Aliases: aliases,
-		Rule:    rules,
+		Rules:   rules,
 	}
 }
 
@@ -143,24 +150,38 @@ func GenerateJson(zones []string) {
 			if err != nil {
 				slog.Error("DecodeTZ failure", "TZ", zone.Extend, "error", err)
 			}
-			zj := NewSchedulerJson(name, std, dst, len(zone.Offsets) > 1, zone.Aliases, rules)
-			SchedulerZoneInfo = append(SchedulerZoneInfo, zj)
+			if jsonFileFormat == "slices" {
+				zj := NewSchedulerJson(name, std, dst, len(zone.Offsets) > 1, zone.Aliases, rules)
+				SchedulerZoneSlices = append(SchedulerZoneSlices, zj)
+			} else if jsonFileFormat == "objects" {
+				zj := NewSchedulerJson("", std, dst, len(zone.Offsets) > 1, zone.Aliases, rules)
+				SchedulerZoneObjects[name] = zj
+			}
+
 		} else {
 			fmt.Printf("Missing zone %s\n", name)
 		}
 	}
-	jsonData, err := json.MarshalIndent(SchedulerZoneInfo, "", "  ") // Use MarshalIndent for pretty print
-	if err != nil {
-		Fatal("Error marshaling to JSON ", "error", err)
+	var jsonData []byte
+	var err error
+	if jsonFileFormat == "slices" {
+		jsonData, err = json.MarshalIndent(SchedulerZoneSlices, "", "  ") // Use MarshalIndent for pretty print
+		if err != nil {
+			Fatal("Error marshaling to JSON ", "error", err)
+		}
+	} else if jsonFileFormat == "objects" {
+		jsonData, err = json.MarshalIndent(SchedulerZoneObjects, "", "  ") // Use MarshalIndent for pretty print
+		if err != nil {
+			Fatal("Error marshaling to JSON ", "error", err)
+		}
 	}
 
 	// 4. Write the JSON data to a file
-	filename := "scheduler.json"
-	err = ioutil.WriteFile(filename, jsonData, 0644)
+	err = ioutil.WriteFile(SchedulerFilename, jsonData, 0644)
 	if err != nil {
 		Fatal("Error writing to file", "error", err)
 	}
-	fmt.Printf("Successfully wrote JSON array to %s\n", filename)
+	fmt.Printf("Successfully wrote JSON data to %s\n", SchedulerFilename)
 }
 
 func main() {
@@ -184,6 +205,11 @@ func main() {
 		return nil
 	})
 	pflag.StringVarP(&SchedulerFilename, "json", "j", "", "TBD")
+	pflag.Lookup("json").NoOptDefVal = "scheduler.json"
+	// Parsed Arguments	Resulting Value
+	// --json=hulu		hulu
+	// --json		scheduler.json
+	// [nothing]		""
 
 	pflag.Parse()
 
