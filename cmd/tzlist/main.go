@@ -68,7 +68,7 @@ var SchedulerFilename string
 
 type TzInfoMap map[string]TzInfoType
 
-var jsonFileFormat string = "objects"
+var jsonFileFormat string = "slices"
 
 var TzInfos = make(TzInfoMap)
 
